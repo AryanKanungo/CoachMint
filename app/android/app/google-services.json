@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "53574729538",
+    "project_id": "coachmint-f5596",
+    "storage_bucket": "coachmint-f5596.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:53574729538:android:3635ae9d56b61de48bd2db",
+        "android_client_info": {
+          "package_name": "com.example.coachmint"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDr7M4w7lbMd-H02nvIESjQGfLgyKdjOh0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
