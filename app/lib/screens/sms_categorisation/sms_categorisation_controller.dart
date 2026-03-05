@@ -1,102 +1,153 @@
-import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/transaction_model.dart';
-import '../../services/sms_service.dart';
+import '../../core/sms/sms_service.dart';
+import '../../core/supabase/supabase_client.dart';
 
-class SmsCategorizationController extends GetxController {
-  late final SmsService _smsService;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+// ── State ─────────────────────────────────────────────────────────────────────
 
-  var isLoaded = false.obs;
-  var transactions = <TransactionModel>[].obs;
-  var isCategorizing = false.obs;
-  var draggingIndex = (-1).obs;
+class SmsCategorisationState {
+  final bool isLoaded;
+  final List<TransactionModel> transactions;
+  final bool isCategorizing;
+  final int draggingIndex;
 
-  @override
-  void onInit() {
-    _smsService = Get.find<SmsService>();
-    super.onInit();
+  const SmsCategorisationState({
+    this.isLoaded = false,
+    this.transactions = const [],
+    this.isCategorizing = false,
+    this.draggingIndex = -1,
+  });
+
+  SmsCategorisationState copyWith({
+    bool? isLoaded,
+    List<TransactionModel>? transactions,
+    bool? isCategorizing,
+    int? draggingIndex,
+  }) =>
+      SmsCategorisationState(
+        isLoaded:       isLoaded       ?? this.isLoaded,
+        transactions:   transactions   ?? this.transactions,
+        isCategorizing: isCategorizing ?? this.isCategorizing,
+        draggingIndex:  draggingIndex  ?? this.draggingIndex,
+      );
+}
+
+// ── Notifier ──────────────────────────────────────────────────────────────────
+
+class SmsCategorisationNotifier
+    extends StateNotifier<SmsCategorisationState> {
+  SmsCategorisationNotifier() : super(const SmsCategorisationState()) {
     loadTransactions();
   }
 
   Future<void> loadTransactions() async {
-    isLoaded.value = false;
+    state = state.copyWith(isLoaded: false);
 
     try {
-      final uid = _auth.currentUser?.uid;
-      if (uid == null) {
-        isLoaded.value = true;
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        state = state.copyWith(isLoaded: true);
         return;
       }
 
-      // 1️⃣ Fetch already categorized txn IDs from Firestore
-      final snap = await _db
-          .collection("users")
-          .doc(uid)
-          .collection("transactions")
-          .get();
+      // 1. Fetch already-saved txnIds from Supabase
+      final snap = await supabase
+          .from('transactions')
+          .select('raw_sms_hash')
+          .eq('user_id', userId)
+          .not('category', 'is', null);
 
-      final Set<String> savedTxnIds =
-      snap.docs.map((d) => d["txnId"] as String).toSet();
+      final savedIds = (snap as List)
+          .map((r) => r['raw_sms_hash'] as String)
+          .toSet();
 
-      // 2️⃣ Read all SMS from the last 7 days
-      final allSms = await _smsService.getPastSms(7);
+      // 2. Read last 7 days from phone inbox via SmsService
+      final smsService = SmsService();
+      final rawMessages = await smsService.getPastSms(7);
 
-      // 3️⃣ Filter out SMS that already exist in Firestore
-      transactions.value = allSms
-          .where((txn) =>
-      txn.status == TxnStatus.processed &&
-          !savedTxnIds.contains(txn.txnId))
-          .toList();
+      // 3. Convert to TransactionModel and filter out already-saved ones
+      final pending = <TransactionModel>[];
+      for (final msg in rawMessages) {
+        final txn = TransactionModel.fromRaw(
+          body:          msg.body,
+          dateMillis:    msg.date.millisecondsSinceEpoch,
+          senderAddress: msg.sender,
+        );
+        if (txn.status == TxnStatus.processed &&
+            !savedIds.contains(txn.txnId)) {
+          pending.add(txn);
+        }
+      }
+
+      state = state.copyWith(isLoaded: true, transactions: pending);
     } catch (e) {
-      Get.snackbar("Error", "Could not read SMS: $e");
-    } finally {
-      isLoaded.value = true;
+      debugPrint('SmsCategorisationNotifier.loadTransactions error: $e');
+      state = state.copyWith(isLoaded: true);
     }
   }
 
-  void startCategorizing(int index) {
-    draggingIndex.value = index;
-    isCategorizing.value = true;
-  }
+  void startCategorizing(int index) =>
+      state = state.copyWith(draggingIndex: index, isCategorizing: true);
 
-  void stopCategorizing() {
-    isCategorizing.value = false;
-    draggingIndex.value = -1;
-  }
+  void stopCategorizing() =>
+      state = state.copyWith(isCategorizing: false, draggingIndex: -1);
 
-  List<TransactionModel> get allCategorized =>
-      transactions.where((t) => t.category != null).toList();
-
-  // 🔥 SAVE A TRANSACTION + REMOVE FROM UNCATEGORISED
+  /// Save categorised transaction to Supabase, remove from pending list.
   Future<void> categorizeTransaction(
       TransactionModel txn, String category) async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
 
     try {
-      // save to Firestore using txnId
-      await _db
-          .collection("users")
-          .doc(uid)
-          .collection("transactions")
-          .doc(txn.txnId)
-          .set(txn.toFirestore()..["category"] = category);
+      final existing = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('raw_sms_hash', txn.txnId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (existing != null) {
+        // Already exists — just update category
+        await supabase.from('transactions').update({
+          'category':     category,
+          'category_top': _mapTop(category),
+        })
+            .eq('raw_sms_hash', txn.txnId)
+            .eq('user_id', userId);
+      } else {
+        // Insert fresh row
+        final data = txn.toSupabase(userId);
+        data['category']     = category;
+        data['category_top'] = _mapTop(category);
+        await supabase.from('transactions').insert(data);
+      }
 
       await Future.delayed(const Duration(milliseconds: 50));
 
-      transactions.remove(txn);
-
-      if (transactions.isEmpty) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        Get.back();
-        Get.snackbar("Done 🎉", "All transactions categorized!");
-      }
+      final updated = List<TransactionModel>.from(state.transactions)
+        ..remove(txn);
+      state = state.copyWith(transactions: updated);
     } catch (e) {
-      Get.snackbar("Error", "Failed to save transaction! $e");
+      debugPrint('categorizeTransaction error: $e');
+    }
+  }
+
+  String _mapTop(String category) {
+    switch (category) {
+      case 'Essential':     return 'needs';
+      case 'Non-Essential': return 'wants';
+      case 'Savings':       return 'savings';
+      case 'Investments':   return 'savings';
+      default:              return 'uncategorised';
     }
   }
 }
+
+// ── Provider ──────────────────────────────────────────────────────────────────
+
+final smsCategorisationProvider = StateNotifierProvider<
+    SmsCategorisationNotifier, SmsCategorisationState>(
+      (_) => SmsCategorisationNotifier(),
+);
