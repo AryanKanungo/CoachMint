@@ -2,268 +2,185 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // ── Core Palette ──────────────────────────────────────────────
-  // Deep navy base — financial trust, not generic dark
-  static const Color surface         = Color(0xFF080C14);   // near-black navy
-  static const Color surfaceCard     = Color(0xFF0F1520);   // card bg — blue-dark
-  static const Color surfaceElevated = Color(0xFF172030);   // elevated surface
-  static const Color surfaceInput    = Color(0xFF111927);   // input bg
+  // ── Palette ─────────────────────────────────────────────────
+  static const Color surface         = Color(0xFF080D14);
+  static const Color surfaceCard     = Color(0xFF0D1520);
+  static const Color surfaceElevated = Color(0xFF111E2E);
+  static const Color surfaceInput    = Color(0xFF0D1520);
 
-  // Borders — very subtle, cool-toned
-  static const Color border          = Color(0xFF1E2D42);
-  static const Color borderLight     = Color(0xFF253348);
+  static const Color border          = Color(0xFF1C2B3D);
 
-  // Brand — warm gold. Reads as "financial authority", not "startup"
-  static const Color brand           = Color(0xFFC9A84C);   // refined gold
-  static const Color brandLight      = Color(0xFFE8C96A);   // gold highlight
-  static const Color brandDim        = Color(0xFF8A6E2F);   // gold dim
+  // Brand — blue-green, easy on dark eyes
+  static const Color brand           = Color(0xFF00C896);
+  static const Color brandDim        = Color(0xFF009E78);
 
   // Text
-  static const Color textPrimary     = Color(0xFFF2F4F8);
-  static const Color textSecondary   = Color(0xFF7A8EA8);
-  static const Color textMuted       = Color(0xFF3D5068);
+  static const Color textPrimary     = Color(0xFFE8EFF7);
+  static const Color textSecondary   = Color(0xFF6B7E96);
+  static const Color textMuted       = Color(0xFF3A4E63);
 
   // Semantic
-  static const Color success         = Color(0xFF2ECC8E);   // muted green — not neon
-  static const Color warning         = Color(0xFFE8A020);   // amber
-  static const Color danger          = Color(0xFFE8445A);   // deep red
-  static const Color info            = Color(0xFF3D80D4);   // steel blue
+  static const Color success         = Color(0xFF00C896);
+  static const Color warning         = Color(0xFFE09520);
+  static const Color danger          = Color(0xFFE03E52);
+  static const Color info            = Color(0xFF3D7FD4);
 
-  // Resilience score colors — desaturated, professional
-  static const Color strong          = Color(0xFF2ECC8E);
-  static const Color moderate        = Color(0xFFE8A020);
-  static const Color building        = Color(0xFFE86820);
-  static const Color fragile         = Color(0xFFE8445A);
+  // Resilience
+  static const Color strong          = Color(0xFF00C896);
+  static const Color moderate        = Color(0xFFE09520);
+  static const Color building        = Color(0xFFE07020);
+  static const Color fragile         = Color(0xFFE03E52);
 
   static ThemeData dark() {
-    // DM Sans for body — clean, slightly humanist, finance-appropriate
-    // Cormorant Garamond display weight for large numbers — editorial authority
-    final base = GoogleFonts.dmSansTextTheme();
-
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: surface,
       colorScheme: const ColorScheme.dark(
         primary: brand,
-        secondary: brandLight,
+        secondary: brandDim,
         surface: surfaceCard,
         error: danger,
-        onPrimary: Color(0xFF080C14),
+        onPrimary: Color(0xFF080D14),
         onSurface: textPrimary,
       ),
-      textTheme: base.copyWith(
-        // Display — used for big numbers, section headers
-        displayLarge: GoogleFonts.dmSans(
-          fontSize: 52,
-          fontWeight: FontWeight.w700,
-          color: textPrimary,
-          letterSpacing: -2.0,
-          height: 1.0,
-        ),
-        displayMedium: GoogleFonts.dmSans(
-          fontSize: 38,
-          fontWeight: FontWeight.w700,
-          color: textPrimary,
-          letterSpacing: -1.5,
-          height: 1.1,
-        ),
-        displaySmall: GoogleFonts.dmSans(
-          fontSize: 28,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-          letterSpacing: -0.8,
-        ),
-        headlineLarge: GoogleFonts.dmSans(
-          fontSize: 22,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-          letterSpacing: -0.4,
-        ),
-        headlineMedium: GoogleFonts.dmSans(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-          letterSpacing: -0.3,
-        ),
-        headlineSmall: GoogleFonts.dmSans(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-        ),
-        titleLarge: GoogleFonts.dmSans(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-          letterSpacing: 0.1,
-        ),
-        titleMedium: GoogleFonts.dmSans(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: textSecondary,
-          letterSpacing: 0.2,
-        ),
-        titleSmall: GoogleFonts.dmSans(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: textMuted,
-          letterSpacing: 1.2,         // spaced caps for section labels
-        ),
-        bodyLarge: GoogleFonts.dmSans(
-          fontSize: 15,
-          fontWeight: FontWeight.w400,
-          color: textPrimary,
-          height: 1.6,
-        ),
-        bodyMedium: GoogleFonts.dmSans(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: textSecondary,
-          height: 1.5,
-        ),
-        bodySmall: GoogleFonts.dmSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-          color: textMuted,
-          height: 1.5,
-        ),
-        labelLarge: GoogleFonts.dmSans(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-          letterSpacing: 0.3,
-        ),
-        labelSmall: GoogleFonts.dmSans(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: textMuted,
-          letterSpacing: 1.4,
-        ),
+      textTheme: TextTheme(
+        displayLarge:  GoogleFonts.dmSans(fontSize: 48, fontWeight: FontWeight.w700, color: textPrimary, letterSpacing: -1.5, height: 1.0),
+        displayMedium: GoogleFonts.dmSans(fontSize: 36, fontWeight: FontWeight.w700, color: textPrimary, letterSpacing: -1.0, height: 1.1),
+        displaySmall:  GoogleFonts.dmSans(fontSize: 26, fontWeight: FontWeight.w700, color: textPrimary, letterSpacing: -0.5),
+        headlineLarge: GoogleFonts.dmSans(fontSize: 22, fontWeight: FontWeight.w600, color: textPrimary, letterSpacing: -0.3),
+        headlineMedium:GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600, color: textPrimary),
+        headlineSmall: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary),
+        titleLarge:    GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary),
+        titleMedium:   GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w500, color: textSecondary),
+        titleSmall:    GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: textMuted, letterSpacing: 1.4),
+        bodyLarge:     GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w400, color: textPrimary, height: 1.6),
+        bodyMedium:    GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w400, color: textSecondary, height: 1.5),
+        bodySmall:     GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w400, color: textMuted, height: 1.5),
+        labelLarge:    GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary),
+        labelSmall:    GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: textMuted, letterSpacing: 1.6),
       ),
 
       cardTheme: CardThemeData(
         color: surfaceCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),   // tighter radius — financial
+          borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: border, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
 
+      // THE FIX — every border state must be OutlineInputBorder
+      // or Flutter falls back to the default underline
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceInput,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: border),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: border, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: border),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: border, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: brand, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: danger),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: danger, width: 1),
         ),
-        labelStyle: const TextStyle(color: textSecondary, fontSize: 13),
-        hintStyle: const TextStyle(color: textMuted, fontSize: 14),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: danger, width: 1.5),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: border, width: 1),
+        ),
+        labelStyle:  GoogleFonts.dmSans(color: textSecondary, fontSize: 14),
+        hintStyle:   GoogleFonts.dmSans(color: textMuted, fontSize: 14),
+        prefixStyle: GoogleFonts.dmSans(color: brand, fontSize: 16, fontWeight: FontWeight.w500),
+        suffixStyle: GoogleFonts.dmSans(color: textMuted, fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
 
+      // THE FIX — foregroundColor must be very dark on brand background
+      // brand = #00C896 (light teal), so text = #080D14 (near-black)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: brand,
-          foregroundColor: const Color(0xFF080C14),
+          foregroundColor: const Color(0xFF080D14),
+          disabledBackgroundColor: const Color(0xFF1C2B3D),
+          disabledForegroundColor: const Color(0xFF3A4E63),
           elevation: 0,
+          shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),  // sharp corners
-          ),
-          textStyle: GoogleFonts.dmSans(
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-            letterSpacing: 0.2,
-          ),
+          minimumSize: const Size(double.infinity, 52),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15),
         ),
       ),
 
+      // Outline button — ghost style, dark-bg friendly
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: brand,
-          side: const BorderSide(color: brand, width: 1),
+          foregroundColor: textSecondary,
+          backgroundColor: Colors.transparent,
+          side: const BorderSide(color: border, width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
-          textStyle: GoogleFonts.dmSans(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-          ),
+          minimumSize: const Size(double.infinity, 52),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: GoogleFonts.dmSans(fontWeight: FontWeight.w500, fontSize: 15),
         ),
       ),
 
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: surfaceCard,
         selectedItemColor: brand,
         unselectedItemColor: textMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: TextStyle(fontSize: 11),
+        selectedLabelStyle: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: GoogleFonts.dmSans(fontSize: 11),
       ),
 
-      dividerTheme: const DividerThemeData(
-        color: border,
-        thickness: 1,
-      ),
+      dividerTheme: const DividerThemeData(color: border, thickness: 1, space: 1),
 
       appBarTheme: AppBarTheme(
         backgroundColor: surface,
         elevation: 0,
         scrolledUnderElevation: 0,
-        iconTheme: const IconThemeData(color: textSecondary),
+        iconTheme: const IconThemeData(color: textSecondary, size: 20),
         titleTextStyle: GoogleFonts.dmSans(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-          letterSpacing: -0.2,
+          fontSize: 16, fontWeight: FontWeight.w600,
+          color: textPrimary, letterSpacing: -0.2,
         ),
-        actionsIconTheme: const IconThemeData(color: textSecondary),
       ),
 
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: surfaceCard,
         modalBackgroundColor: surfaceCard,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           side: BorderSide(color: border),
         ),
-        dragHandleColor: borderLight,
+        dragHandleColor: border,
+        dragHandleSize: Size(36, 4),
       ),
 
       chipTheme: ChipThemeData(
         backgroundColor: surfaceElevated,
         side: const BorderSide(color: border),
-        labelStyle: GoogleFonts.dmSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: textSecondary,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-        ),
+        labelStyle: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w500, color: textSecondary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       ),
     );
   }
 }
-
-// ── Color helpers ──────────────────────────────────────────────────────────
 
 Color resilienceColor(int score) {
   if (score >= 75) return AppTheme.strong;

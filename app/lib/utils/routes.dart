@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // Import your screens here
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
+import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 
 
@@ -49,9 +50,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/dashboard',
-      builder: (context, state) => const Scaffold(
-        body: Center(child: Text('Dashboard Coming Soon...')),
-      ),
+      builder: (context, state) => DashboardScreen(),
     ),
   ],
 );
