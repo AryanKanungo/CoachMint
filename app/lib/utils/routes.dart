@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
@@ -33,6 +34,18 @@ class AppRoutes {
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.login,
+  redirect: (context, state) {
+    final session = Supabase.instance.client.auth.currentSession;
+    final isLoggedIn = session != null;
+
+    final isAuthRoute = state.matchedLocation == AppRoutes.login ||
+        state.matchedLocation == AppRoutes.register;
+
+    if (!isLoggedIn && !isAuthRoute) return AppRoutes.login;
+    if (isLoggedIn && isAuthRoute) return AppRoutes.dashboard;
+
+    return null;
+  },
   routes: [
     GoRoute(
       path: AppRoutes.login,

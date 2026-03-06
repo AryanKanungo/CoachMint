@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; 
+import '../../common_widgets/widgets.dart';
 import '../../services/scheme_service.dart'; // Updated path to match lib/services/
 
 class GovtSchemesScreen extends StatefulWidget {
@@ -56,6 +57,7 @@ class _GovtSchemesScreenState extends State<GovtSchemesScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
+        bottomNavigationBar: const CustomBottomNavBar(currentIndex: 3),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _schemesFuture,
         builder: (context, snapshot) {
