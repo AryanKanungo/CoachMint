@@ -38,7 +38,7 @@ final GoRouter appRouter = GoRouter(
             state.matchedLocation == AppRoutes.register;
 
     if (!isLoggedIn && !isAuthRoute) return AppRoutes.login;
-    if (isLoggedIn  && isAuthRoute)  return AppRoutes.onboarding;
+    if (isLoggedIn  && isAuthRoute)  return AppRoutes.dashboard;
 
     return null;
   },

@@ -22,10 +22,10 @@ class AppColors {
 
   // ── Brand / Accent ────────────────────────────────────────────
   /// Primary emerald green — CTAs, active states, positive indicators
-  static const Color primary = Color(0xFF2ECC71);
+  static const Color primary = Color(0xFF2E8FCC);
 
   /// Slightly brighter variant for glow / hover
-  static const Color primaryBright = Color(0xFF00C853);
+  static const Color primaryBright = Color(0xFF0E56A8);
 
   /// Muted emerald for backgrounds behind green elements
   static const Color primaryMuted = Color(0x1A2ECC71); // 10% opacity
