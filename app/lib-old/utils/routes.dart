@@ -11,7 +11,9 @@ import '../screens/sms_categorisation/sms_categorsation_screen.dart';
 import '../screens/sms_categorisation/categorized_transactions_screen.dart';
 import '../screens/sms_permissions/sms_permission_screen.dart';
 
-
+/// ════════════════════════════════════════════════════════════════
+/// AppRoutes — named route constants (use these, never raw strings)
+/// ════════════════════════════════════════════════════════════════
 class AppRoutes {
   AppRoutes._();
 
@@ -32,22 +34,6 @@ class AppRoutes {
 /// ════════════════════════════════════════════════════════════════
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.login,
-
-
-  redirect: (context, state) {
-    final session    = Supabase.instance.client.auth.currentSession;
-    final isLoggedIn = session != null;
-
-    final isAuthRoute =
-        state.matchedLocation == AppRoutes.login ||
-            state.matchedLocation == AppRoutes.register;
-
-    if (!isLoggedIn && !isAuthRoute) return AppRoutes.login;
-    if (isLoggedIn  && isAuthRoute)  return AppRoutes.dashboard;
-
-    return null;
-  },
-
   routes: [
     GoRoute(
       path: AppRoutes.login,
