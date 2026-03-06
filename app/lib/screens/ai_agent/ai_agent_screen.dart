@@ -2,7 +2,9 @@
 // ignore_for_file: constant_identifier_names
 
 import 'dart:math';
+import 'package:coachmint/utils/routes.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -228,7 +230,7 @@ class _AIAgentScreenState extends State<AIAgentScreen> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_rounded,
             color: _chatTextPrimary),
-        onPressed: () => Navigator.of(context).maybePop(),
+        onPressed: () => context.go(AppRoutes.dashboard),
       ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
