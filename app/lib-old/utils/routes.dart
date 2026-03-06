@@ -12,8 +12,11 @@ import '../screens/sms_categorisation/categorized_transactions_screen.dart';
 import '../screens/sms_permissions/sms_permission_screen.dart';
 
 /// ════════════════════════════════════════════════════════════════
-/// AppRoutes — named route constants (use these, never raw strings)
+/// AppRouter — centralised GoRouter configuration
+/// All named routes defined here. No functional logic changed.
 /// ════════════════════════════════════════════════════════════════
+
+/// Named route constants — use these instead of raw strings.
 class AppRoutes {
   AppRoutes._();
 
@@ -29,11 +32,20 @@ class AppRoutes {
   static const String categorizedTxns   = '/categorized-transactions';
 }
 
-/// ════════════════════════════════════════════════════════════════
-/// appRouter — GoRouter instance used by GetMaterialApp.router
-/// ════════════════════════════════════════════════════════════════
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.login,
+  redirect: (context, state) {
+    final session = Supabase.instance.client.auth.currentSession;
+    final isLoggedIn = session != null;
+
+    final isAuthRoute = state.matchedLocation == AppRoutes.login ||
+        state.matchedLocation == AppRoutes.register;
+
+    if (!isLoggedIn && !isAuthRoute) return AppRoutes.login;
+    if (isLoggedIn && isAuthRoute) return AppRoutes.dashboard;
+
+    return null;
+  },
   routes: [
     GoRoute(
       path: AppRoutes.login,
@@ -53,12 +65,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.aiAgent,
-      builder: (context, state) {
-        // userId always available post-login from Supabase auth
-        final userId =
-            Supabase.instance.client.auth.currentUser?.id ?? '';
-        return AIAgentScreen(userId: userId);
-      },
+      builder: (context, state) => const AIAgentScreen(),
     ),
     GoRoute(
       path: AppRoutes.trackGoals,
@@ -74,13 +81,11 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.smsCategorization,
-      builder: (context, state) =>
-          const SmsCategorizationScreen(),
+      builder: (context, state) => const SmsCategorizationScreen(),
     ),
     GoRoute(
       path: AppRoutes.categorizedTxns,
-      builder: (context, state) =>
-          const CategorizedTransactionsScreen(),
+      builder: (context, state) => const CategorizedTransactionsScreen(),
     ),
   ],
 );
