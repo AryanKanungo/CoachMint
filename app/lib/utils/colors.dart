@@ -1,26 +1,82 @@
 import 'package:flutter/material.dart';
 
-// Defines the app's color palette based on your request.
+/// ════════════════════════════════════════════════════════════════
+/// AppColors — Single source of truth for the design system palette
+/// Midnight Dark + Emerald Green accent
+/// ════════════════════════════════════════════════════════════════
 class AppColors {
-  // Primary & Accent
-  //static const Color primary = Color(0xFF0046FF); // Deep Purple (for goals/accent)
-  //static const Color primaryLight = Color(0xFF7E57C2);
-  static const Color primary = Color(0xFF64B5F6); // Lighter Blue for key actions/focus
+  AppColors._();
 
-  // Secondary (Accent/Highlight)
-  static const Color primaryLight = Color(0xFFFFB300);
+  // ── Backgrounds ──────────────────────────────────────────────
+  /// True app background: deep dark
+  static const Color background = Color(0xFF121212);
 
+  /// Card / surface background: slightly lifted
+  static const Color surface = Color(0xFF1E1E1E);
 
-  static const Color greenAccent = Color(0xFF4CAF50);
-  static const Color redAccent = Color(0xFFF64949);
+  /// Elevated surface for inputs, chips, nested containers
+  static const Color surfaceElevated = Color(0xFF252525);
 
-  // Text
-  static const Color mainText = Color(0xFFDDDDDD);
-  static const Color secondaryText = Color(0xFF939393);
+  /// Highest elevated surface (e.g. modals, drawers)
+  static const Color surfaceHigh = Color(0xFF2C2C2C);
 
-  // Background & Cards
-  static const Color background = Color(0xFF2C2C2C); // Light grey app background
-  static const Color cardBackground = Color(0xFF232323);
-  static const Color white = Color(0xFFFFFFFF);
-  static const Color black = Color(0xFF000000);
+  // ── Brand / Accent ────────────────────────────────────────────
+  /// Primary emerald green — CTAs, active states, positive indicators
+  static const Color primary = Color(0xFF2ECC71);
+
+  /// Slightly brighter variant for glow / hover
+  static const Color primaryBright = Color(0xFF00C853);
+
+  /// Muted emerald for backgrounds behind green elements
+  static const Color primaryMuted = Color(0x1A2ECC71); // 10% opacity
+
+  // ── Text ──────────────────────────────────────────────────────
+  /// Primary label text — pure white
+  static const Color textPrimary = Color(0xFFFFFFFF);
+
+  /// Secondary label text — medium grey
+  static const Color textSecondary = Color(0xFFB0B0B0);
+
+  /// Muted / hint / placeholder text
+  static const Color textMuted = Color(0xFF9E9E9E);
+
+  /// Disabled text
+  static const Color textDisabled = Color(0xFF616161);
+
+  // ── Borders ───────────────────────────────────────────────────
+  /// Default subtle border for cards and inputs
+  static const Color border = Color(0xFF2A2A2A);
+
+  /// Focused input border (faint green)
+  static const Color borderFocus = Color(0x662ECC71); // 40% primary
+
+  // ── Semantic Colors ───────────────────────────────────────────
+  /// Success / income indicators
+  static const Color success = Color(0xFF2ECC71);
+
+  /// Warning / caution
+  static const Color warning = Color(0xFFF39C12);
+
+  /// Error / expense / danger
+  static const Color danger = Color(0xFFE74C3C);
+
+  /// Informational
+  static const Color info = Color(0xFF3498DB);
+
+  // ── Legacy aliases kept for backward compatibility ─────────────
+  /// @deprecated — use [background]
+  static const Color cardBackground = surface;
+
+  /// @deprecated — use [primary]
+  static const Color greenAccent = primary;
+
+  /// @deprecated — use [danger]
+  static const Color redAccent = danger;
+
+  /// @deprecated — use [textPrimary]
+  static const Color mainText = textPrimary;
+  static const Color white = textPrimary;
+
+  /// @deprecated — use [textMuted]
+  static const Color secondaryText = textMuted;
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart'; // Ensure you have intl in pubspec.yaml
 import '../utils/theme.dart';
+import '../utils/colors.dart';
+import '../utils/routes.dart';
 
 // ════════════════════════════════════════════════════════════════
 // Currency formatter
@@ -13,11 +16,147 @@ final _inrFormatter = NumberFormat.currency(
   decimalDigits: 0,
 );
 
-String formatInr(double amount) => _inrFormatter.format(amount);
+String? formatInr(double amount) => _inrFormatter?.format(amount);
+
+extension on Object? {
+  String format(double amount) {
+    return _inrFormatter.format(amount) ?? '';
+  }
+}
 
 // ════════════════════════════════════════════════════════════════
-// CMCard — base card
-// Sharp corners, subtle border, no shadows
+// CustomBottomNavBar
+// ════════════════════════════════════════════════════════════════
+
+class CustomBottomNavBar extends StatelessWidget {
+  final int currentIndex;
+
+  const CustomBottomNavBar({super.key, required this.currentIndex});
+
+  static const _items = [
+    _NavItem(
+      icon: Icons.home_rounded,
+      label: 'Home',
+      route: AppRoutes.dashboard,
+    ),
+    _NavItem(
+      icon: Icons.auto_awesome_rounded,
+      label: 'Ask AI',
+      route: AppRoutes.aiAgent,
+    ),
+    _NavItem(
+      icon: Icons.track_changes_rounded,
+      label: 'Track Goals',
+      route: AppRoutes.trackGoals,
+    ),
+    _NavItem(
+      icon: Icons.account_balance_rounded,
+      label: 'Govt Schemes',
+      route: AppRoutes.govtSchemes,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(
+          top: BorderSide(color: AppColors.border, width: 1),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            children: List.generate(_items.length, (i) {
+              final item = _items[i];
+              final isActive = i == currentIndex;
+              return Expanded(
+                child: _NavTile(
+                  item: item,
+                  isActive: isActive,
+                  onTap: () {
+                    if (!isActive) {
+                      context.go(item.route);
+                    }
+                  },
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem {
+  final IconData icon;
+  final String label;
+  final String route;
+
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
+}
+
+class _NavTile extends StatelessWidget {
+  final _NavItem item;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NavTile({
+    required this.item,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive ? AppColors.primary : AppColors.textMuted;
+
+    return InkWell(
+      onTap: onTap,
+      splashColor: AppColors.primaryMuted,
+      highlightColor: AppColors.primaryMuted,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            // FIX: Replaced AppTheme.animFast with hardcoded Duration
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: isActive ? AppColors.primaryMuted : Colors.transparent,
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+            child: Icon(item.icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 2),
+          AnimatedDefaultTextStyle(
+            // FIX: Replaced AppTheme.animFast with hardcoded Duration
+            duration: const Duration(milliseconds: 200),
+            style: GoogleFonts.dmSans(
+              fontSize: 10,
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              color: color,
+            ),
+            child: Text(item.label),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ... Rest of your components (CMCard, CMButton, etc.)
+// ════════════════════════════════════════════════════════════════
+// CMCard — base surface card
+// Uniform 12px radius, subtle border, no shadow
 // ════════════════════════════════════════════════════════════════
 
 class CMCard extends StatelessWidget {
@@ -43,10 +182,10 @@ class CMCard extends StatelessWidget {
       child: Container(
         padding: padding ?? const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: backgroundColor ?? AppTheme.surfaceCard,
-          borderRadius: BorderRadius.circular(8),
+          color: backgroundColor ?? AppColors.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
           border: Border.all(
-            color: borderColor ?? AppTheme.border,
+            color: borderColor ?? AppColors.border,
             width: 1,
           ),
         ),
@@ -88,32 +227,32 @@ class CMButton extends StatelessWidget {
       onPressed: loading ? null : onPressed,
       child: loading
           ? const SizedBox(
-        height: 18,
-        width: 18,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: AppTheme.surface,
-        ),
-      )
+              height: 18,
+              width: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.black,
+              ),
+            )
           : _child,
     );
   }
 
   Widget get _child => icon != null
       ? Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icon, size: 16),
-      const SizedBox(width: 8),
-      Text(label),
-    ],
-  )
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16),
+            const SizedBox(width: 8),
+            Text(label),
+          ],
+        )
       : Text(label);
 }
 
 // ════════════════════════════════════════════════════════════════
 // ResilienceScoreBadge
-// Refined arc-style, no thick stroke, clean label
+// Arc-style score display with colour-coded resilience level
 // ════════════════════════════════════════════════════════════════
 
 class ResilienceScoreBadge extends StatelessWidget {
@@ -130,24 +269,22 @@ class ResilienceScoreBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = resilienceColor(score);
+    final color = AppTheme.resilienceColor(score);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Stack(
           alignment: Alignment.center,
           children: [
-            // Track
             SizedBox(
               height: size,
               width: size,
-              child: CircularProgressIndicator(
+              child: const CircularProgressIndicator(
                 value: 1.0,
                 strokeWidth: 2,
-                color: AppTheme.border,
+                color: AppColors.border,
               ),
             ),
-            // Fill
             SizedBox(
               height: size,
               width: size,
@@ -177,7 +314,7 @@ class ResilienceScoreBadge extends StatelessWidget {
                   style: GoogleFonts.dmSans(
                     fontSize: size * 0.10,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.textMuted,
+                    color: AppColors.textMuted,
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -190,7 +327,7 @@ class ResilienceScoreBadge extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             border: Border.all(color: color.withOpacity(0.4)),
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           ),
           child: Text(
             label,
@@ -209,7 +346,6 @@ class ResilienceScoreBadge extends StatelessWidget {
 
 // ════════════════════════════════════════════════════════════════
 // SPDDisplay — Safe to Spend Per Day
-// Large editorial number treatment
 // ════════════════════════════════════════════════════════════════
 
 class SPDDisplay extends StatelessWidget {
@@ -225,7 +361,7 @@ class SPDDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isNegative = spd < 0;
-    final color = isNegative ? AppTheme.danger : AppTheme.brand;
+    final color = isNegative ? AppColors.danger : AppColors.primary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,7 +371,7 @@ class SPDDisplay extends StatelessWidget {
           style: GoogleFonts.dmSans(
             fontSize: 10,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textMuted,
+            color: AppColors.textMuted,
             letterSpacing: 1.6,
           ),
         ),
@@ -267,18 +403,21 @@ class SPDDisplay extends StatelessWidget {
             if (isNegative) ...[
               const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.danger.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(3),
-                  border: Border.all(color: AppTheme.danger.withOpacity(0.3)),
+                  color: AppColors.danger.withOpacity(0.12),
+                  borderRadius:
+                      BorderRadius.circular(AppTheme.radiusSm),
+                  border: Border.all(
+                      color: AppColors.danger.withOpacity(0.3)),
                 ),
                 child: Text(
                   'OVERSPENT',
                   style: GoogleFonts.dmSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.danger,
+                    color: AppColors.danger,
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -294,8 +433,8 @@ class SPDDisplay extends StatelessWidget {
               height: 5,
               decoration: BoxDecoration(
                 color: survivalDays < 7
-                    ? AppTheme.danger
-                    : AppTheme.textMuted,
+                    ? AppColors.danger
+                    : AppColors.textMuted,
                 shape: BoxShape.circle,
               ),
             ),
@@ -304,7 +443,7 @@ class SPDDisplay extends StatelessWidget {
               '${survivalDays.toStringAsFixed(1)} survival days remaining',
               style: GoogleFonts.dmSans(
                 fontSize: 12,
-                color: AppTheme.textMuted,
+                color: AppColors.textMuted,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -315,8 +454,20 @@ class SPDDisplay extends StatelessWidget {
   }
 }
 
+class NumberFormat {
+  NumberFormat(String s);
+  
+  String format(double abs) {
+    return abs.toString();
+  }
+  
+  static Object? currency({required String locale, required String symbol, required int decimalDigits}) {
+    return null;
+  }
+}
+
 // ════════════════════════════════════════════════════════════════
-// SeverityChip — clean label, no background fill
+// SeverityChip
 // ════════════════════════════════════════════════════════════════
 
 class SeverityChip extends StatelessWidget {
@@ -329,22 +480,22 @@ class SeverityChip extends StatelessWidget {
     Color color;
     switch (severity) {
       case 'critical':
-        color = AppTheme.danger;
+        color = AppColors.danger;
         break;
       case 'warning':
-        color = AppTheme.warning;
+        color = AppColors.warning;
         break;
       case 'positive':
-        color = AppTheme.success;
+        color = AppColors.success;
         break;
       default:
-        color = AppTheme.info;
+        color = AppColors.info;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         border: Border.all(color: color.withOpacity(0.5)),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
       ),
       child: Text(
         severity.toUpperCase(),
@@ -360,7 +511,7 @@ class SeverityChip extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════
-// TrendBadge — income trend indicator
+// TrendBadge
 // ════════════════════════════════════════════════════════════════
 
 class TrendBadge extends StatelessWidget {
@@ -375,17 +526,17 @@ class TrendBadge extends StatelessWidget {
     switch (trend) {
       case 'surge':
         icon = Icons.north_east_rounded;
-        color = AppTheme.success;
+        color = AppColors.success;
         label = 'Income up';
         break;
       case 'dip':
         icon = Icons.south_east_rounded;
-        color = AppTheme.danger;
+        color = AppColors.danger;
         label = 'Income dip';
         break;
       default:
         icon = Icons.east_rounded;
-        color = AppTheme.textSecondary;
+        color = AppColors.textSecondary;
         label = 'Stable';
     }
     return Container(
@@ -393,7 +544,7 @@ class TrendBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
         border: Border.all(color: color.withOpacity(0.25)),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -416,8 +567,7 @@ class TrendBadge extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════
-// SectionLabel — uppercase spaced label for section headers
-// Replaces verbose headers with tight, professional labels
+// SectionLabel
 // ════════════════════════════════════════════════════════════════
 
 class SectionLabel extends StatelessWidget {
@@ -435,7 +585,7 @@ class SectionLabel extends StatelessWidget {
           style: GoogleFonts.dmSans(
             fontSize: 10,
             fontWeight: FontWeight.w700,
-            color: AppTheme.textMuted,
+            color: AppColors.textMuted,
             letterSpacing: 1.6,
           ),
         ),
@@ -449,8 +599,7 @@ class SectionLabel extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════
-// StatRow — compact two-value comparison row
-// Used for "before vs after" in simulate, and dashboard stats
+// StatRow
 // ════════════════════════════════════════════════════════════════
 
 class StatRow extends StatelessWidget {
@@ -477,7 +626,7 @@ class StatRow extends StatelessWidget {
             label,
             style: GoogleFonts.dmSans(
               fontSize: 13,
-              color: AppTheme.textSecondary,
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -487,20 +636,20 @@ class StatRow extends StatelessWidget {
               subValue!,
               style: GoogleFonts.dmSans(
                 fontSize: 13,
-                color: AppTheme.textMuted,
+                color: AppColors.textMuted,
                 fontWeight: FontWeight.w400,
                 decoration: TextDecoration.lineThrough,
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.arrow_forward, size: 12, color: AppTheme.textMuted),
+            const Icon(Icons.arrow_forward, size: 12, color: AppColors.textMuted),
             const SizedBox(width: 8),
           ],
           Text(
             value,
             style: GoogleFonts.dmSans(
               fontSize: 14,
-              color: valueColor ?? AppTheme.textPrimary,
+              color: valueColor ?? AppColors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -511,12 +660,12 @@ class StatRow extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════
-// RiskBanner — horizontal alert strip
+// RiskBanner
 // ════════════════════════════════════════════════════════════════
 
 class RiskBanner extends StatelessWidget {
   final String message;
-  final String severity;   // critical | warning | advisory
+  final String severity; // critical | warning | advisory
   final VoidCallback? onTap;
 
   const RiskBanner({
@@ -529,10 +678,10 @@ class RiskBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = severity == 'critical'
-        ? AppTheme.danger
+        ? AppColors.danger
         : severity == 'warning'
-        ? AppTheme.warning
-        : AppTheme.info;
+            ? AppColors.warning
+            : AppColors.info;
 
     return GestureDetector(
       onTap: onTap,
@@ -572,7 +721,8 @@ class RiskBanner extends StatelessWidget {
               ),
             ),
             if (onTap != null)
-              Icon(Icons.chevron_right, color: color.withOpacity(0.6), size: 16),
+              Icon(Icons.chevron_right,
+                  color: color.withOpacity(0.6), size: 16),
           ],
         ),
       ),
@@ -637,9 +787,9 @@ class _LoadingShimmerState extends State<LoadingShimmer>
               begin: Alignment(_animation.value - 1, 0),
               end: Alignment(_animation.value, 0),
               colors: const [
-                AppTheme.surfaceCard,
-                AppTheme.surfaceElevated,
-                AppTheme.surfaceCard,
+                AppColors.surface,
+                AppColors.surfaceElevated,
+                AppColors.surface,
               ],
               stops: const [0.0, 0.5, 1.0],
             ),
@@ -681,11 +831,12 @@ class EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceElevated,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.border),
+                color: AppColors.surfaceElevated,
+                borderRadius:
+                    BorderRadius.circular(AppTheme.radiusMd),
+                border: Border.all(color: AppColors.border),
               ),
-              child: Icon(icon, size: 28, color: AppTheme.textMuted),
+              child: Icon(icon, size: 28, color: AppColors.textMuted),
             ),
             const SizedBox(height: 18),
             Text(
@@ -693,7 +844,7 @@ class EmptyState extends StatelessWidget {
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -702,7 +853,7 @@ class EmptyState extends StatelessWidget {
               subtitle,
               style: GoogleFonts.dmSans(
                 fontSize: 13,
-                color: AppTheme.textMuted,
+                color: AppColors.textMuted,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -719,7 +870,7 @@ class EmptyState extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════
-// Divider with optional label — for section breaks
+// CMDivider
 // ════════════════════════════════════════════════════════════════
 
 class CMDivider extends StatelessWidget {
@@ -729,24 +880,26 @@ class CMDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (label == null) {
-      return const Divider(color: AppTheme.border, thickness: 1, height: 1);
+      return const Divider(color: AppColors.border, thickness: 1, height: 1);
     }
     return Row(
       children: [
-        const Expanded(child: Divider(color: AppTheme.border, thickness: 1)),
+        const Expanded(
+            child: Divider(color: AppColors.border, thickness: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             label!,
             style: GoogleFonts.dmSans(
               fontSize: 10,
-              color: AppTheme.textMuted,
+              color: AppColors.textMuted,
               letterSpacing: 1.2,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        const Expanded(child: Divider(color: AppTheme.border, thickness: 1)),
+        const Expanded(
+            child: Divider(color: AppColors.border, thickness: 1)),
       ],
     );
   }

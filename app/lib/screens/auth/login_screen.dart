@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get/get.dart';
-import '../../common widgets/widgets.dart';
+import '../../common_widgets/widgets.dart';
 import '../../controllers/login_controller.dart';
+import '../../utils/colors.dart';
 import '../../utils/theme.dart';
-
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
@@ -13,15 +13,15 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              // This math ensures the layout takes exactly the screen height
-              // minus padding, allowing Spacers to work while scrolling!
               minHeight: MediaQuery.of(context).size.height -
                   MediaQuery.of(context).padding.top -
                   MediaQuery.of(context).padding.bottom -
@@ -33,121 +33,94 @@ class LoginScreen extends StatelessWidget {
                 children: [
                   const Spacer(flex: 1),
 
-                  // Logo
+                  // ── Logo ──────────────────────────────────────
                   Container(
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: AppTheme.brand.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.brand.withOpacity(0.3)),
+                      color: AppColors.primaryMuted,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      border: Border.all(
+                          color: AppColors.primary.withOpacity(0.3)),
                     ),
                     child: const Center(
                       child: Text('₹',
-                          style: TextStyle(fontSize: 24, color: AppTheme.brand)),
+                          style: TextStyle(
+                              fontSize: 24,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700)),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  Text(
-                    'Welcome Back',
-                    style: Theme.of(context).textTheme.displaySmall,
-                  ),
+                  Text('Welcome Back', style: tt.displaySmall),
                   const SizedBox(height: 8),
                   Text(
                     'Pick up right where you left off.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppTheme.textSecondary,
+                    style: tt.bodyLarge?.copyWith(
+                      color: AppColors.textSecondary,
                       height: 1.5,
                     ),
                   ),
 
                   const Spacer(flex: 2),
 
-                  // Email Input
+                  // ── Email ─────────────────────────────────────
                   Text('Email Address',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(color: AppTheme.textSecondary)),
+                      style: tt.titleSmall
+                          ?.copyWith(color: AppColors.textSecondary)),
                   const SizedBox(height: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceElevated,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: TextField(
-                      controller: controller.emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      autofocus: true,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
-                      decoration: const InputDecoration(
-                        hintText: 'hello@coachmint.com',
-                        contentPadding: EdgeInsets.all(16),
-                        border: InputBorder.none,
-                      ),
-                    ),
+                  _InputField(
+                    controller: controller.emailController,
+                    hint: 'hello@coachmint.com',
+                    keyboardType: TextInputType.emailAddress,
+                    autofocus: true,
                   ),
 
                   const SizedBox(height: 20),
 
-                  // Password Input
+                  // ── Password ──────────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Password',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(color: AppTheme.textSecondary)),
-                      // Optional: Forgot Password Button
+                          style: tt.titleSmall
+                              ?.copyWith(color: AppColors.textSecondary)),
                       GestureDetector(
                         onTap: () {
                           // TODO: Route to forgot password screen
                         },
-                        child: const Text('Forgot?',
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: AppTheme.brand,
-                                fontWeight: FontWeight.w600)),
+                        child: const Text(
+                          'Forgot?',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceElevated,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: TextField(
-                      controller: controller.passwordController,
-                      obscureText: true,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
-                      decoration: const InputDecoration(
-                        hintText: '••••••••',
-                        contentPadding: EdgeInsets.all(16),
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) async {
-                        if (await controller.login() && context.mounted) {
-                          context.go('/dashboard');
-                        }
-                      },
-                    ),
+                  _InputField(
+                    controller: controller.passwordController,
+                    hint: '••••••••',
+                    obscureText: true,
+                    onSubmitted: (_) async {
+                      if (await controller.login() && context.mounted) {
+                        context.go('/dashboard');
+                      }
+                    },
                   ),
 
-                  // Error Message
+                  // ── Error Message ─────────────────────────────
                   Obx(() {
                     if (controller.errorMessage.value != null) {
                       return Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: Text(
                           controller.errorMessage.value!,
-                          style: const TextStyle(color: AppTheme.danger, fontSize: 13),
+                          style: const TextStyle(
+                              color: AppColors.danger, fontSize: 13),
                         ),
                       );
                     }
@@ -156,33 +129,33 @@ class LoginScreen extends StatelessWidget {
 
                   const SizedBox(height: 32),
 
-                  // Submit Button
+                  // ── Submit Button ─────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     child: Obx(() => CMButton(
-                      label: 'Log In',
-                      loading: controller.isLoading.value,
-                      icon: Icons.arrow_forward_rounded,
-                      onPressed: () async {
-                        bool success = await controller.login();
-                        if (success && context.mounted) {
-                          context.go('/dashboard'); // Route to dashboard on success
-                        }
-                      },
-                    )),
+                          label: 'Log In',
+                          loading: controller.isLoading.value,
+                          icon: Icons.arrow_forward_rounded,
+                          onPressed: () async {
+                            bool success = await controller.login();
+                            if (success && context.mounted) {
+                              context.go('/dashboard');
+                            }
+                          },
+                        )),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Register redirect
+                  // ── Register redirect ─────────────────────────
                   Center(
                     child: GestureDetector(
                       onTap: () => context.go('/register'),
                       child: const Text(
-                        'Don\'t have an account? Sign up',
+                        "Don't have an account? Sign up",
                         style: TextStyle(
                             fontSize: 14,
-                            color: AppTheme.brand,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -193,6 +166,61 @@ class LoginScreen extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Private reusable input field widget — keeps build method clean
+// ─────────────────────────────────────────────────────────────────
+class _InputField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final bool obscureText;
+  final bool autofocus;
+  final TextInputType? keyboardType;
+  final void Function(String)? onSubmitted;
+
+  const _InputField({
+    required this.controller,
+    required this.hint,
+    this.obscureText = false,
+    this.autofocus = false,
+    this.keyboardType,
+    this.onSubmitted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        autofocus: autofocus,
+        keyboardType: keyboardType,
+        onSubmitted: onSubmitted,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(
+            color: AppColors.textMuted,
+            fontWeight: FontWeight.w400,
+          ),
+          contentPadding: const EdgeInsets.all(16),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
         ),
       ),
     );

@@ -1,10 +1,12 @@
 import 'package:coachmint/screens/sms_categorisation/sms_categorisation_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../models/transaction_model.dart';
 import '../../utils/colors.dart';
+import '../../utils/theme.dart';
 
-// Top-level categories constant
+// Top-level categories constant (unchanged — functional data)
 const List<Map<String, dynamic>> kCategories = [
   {"label": "Food", "icon": Icons.restaurant_rounded, "color": Colors.orange},
   {"label": "Transport", "icon": Icons.train_rounded, "color": Colors.blue},
@@ -19,16 +21,17 @@ class SmsCategorizationScreen extends GetView<SmsCategorizationController> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        surfaceTintColor: AppColors.cardBackground,
-        title: const Text("Categorize Transactions"),
+        surfaceTintColor: AppColors.surface,
+        title: const Text('Categorize Transactions'),
       ),
       body: Obx(() {
         if (!controller.isLoaded.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
         }
 
         final sorted = controller.transactions;
@@ -37,8 +40,11 @@ class SmsCategorizationScreen extends GetView<SmsCategorizationController> {
         if (sorted.isEmpty) {
           return Center(
             child: Text(
-              "No transactions found from the last 7 days.",
-              style: textTheme.bodyMedium,
+              'No transactions found from the last 7 days.',
+              style: GoogleFonts.dmSans(
+                color: AppColors.textMuted,
+                fontSize: 14,
+              ),
             ),
           );
         }
@@ -46,38 +52,39 @@ class SmsCategorizationScreen extends GetView<SmsCategorizationController> {
         final total = sorted.length + (draggedIndex != -1 ? 1 : 0);
 
         return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           itemCount: total,
           itemBuilder: (context, index) {
             if (draggedIndex != -1 && index == draggedIndex + 1) {
               return _buildCategoryInsertionPanel(context);
             }
 
-            final realIndex =
-            (draggedIndex != -1 && index > draggedIndex) ? index - 1 : index;
+            final realIndex = (draggedIndex != -1 && index > draggedIndex)
+                ? index - 1
+                : index;
 
             if (realIndex < 0 || realIndex >= sorted.length) {
               return const SizedBox.shrink();
             }
 
-            return _buildTransactionTile(context, sorted[realIndex], realIndex);
+            return _buildTransactionTile(
+                context, sorted[realIndex], realIndex);
           },
         );
       }),
     );
   }
 
-  Widget _buildTransactionTile(BuildContext context, TransactionModel txn, int index) {
-    final textTheme = Theme.of(context).textTheme;
-
-    final isIncome = txn.direction == "in";
-    final amountColor = isIncome ? AppColors.greenAccent : AppColors.redAccent;
-    final categoryLabel = txn.category ?? "Uncategorized";
+  Widget _buildTransactionTile(
+      BuildContext context, TransactionModel txn, int index) {
+    final isIncome = txn.direction == 'in';
+    final amountColor =
+        isIncome ? AppColors.success : AppColors.danger;
+    final categoryLabel = txn.category ?? 'Uncategorized';
 
     return LongPressDraggable<TransactionModel>(
       data: txn,
       onDragStarted: () {
-        // schedule state change outside render pipeline
         Future.microtask(() => controller.startCategorizing(index));
       },
       onDragEnd: (_) {
@@ -87,17 +94,18 @@ class SmsCategorizationScreen extends GetView<SmsCategorizationController> {
         color: Colors.transparent,
         clipBehavior: Clip.hardEdge,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: AppColors.primary,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           ),
           child: Text(
-            "₹${txn.amount.toStringAsFixed(2)} | $categoryLabel",
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+            '₹${txn.amount.toStringAsFixed(2)} | $categoryLabel',
+            style: GoogleFonts.dmSans(
+              color: Colors.black,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -105,80 +113,108 @@ class SmsCategorizationScreen extends GetView<SmsCategorizationController> {
         ),
       ),
       childWhenDragging: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 10),
         height: 80,
         decoration: BoxDecoration(
-          color: AppColors.cardBackground.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.surface.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+          border: Border.all(
+              color: AppColors.border, style: BorderStyle.solid),
         ),
       ),
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: amountColor.withOpacity(0.15),
-                child: Icon(
-                  isIncome ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                  color: amountColor,
-                  size: 26,
-                ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            // ── Direction Icon ──────────────────────────────
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: amountColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      (txn.payee?.trim().isNotEmpty == true ? txn.payee! : "Unknown Merchant"),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.mainText,
-                      fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      txn.formattedDate,
-                      style: textTheme.bodySmall?.copyWith(color: AppColors.secondaryText),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        categoryLabel,
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              child: Icon(
+                isIncome
+                    ? Icons.arrow_upward_rounded
+                    : Icons.arrow_downward_rounded,
+                color: amountColor,
+                size: 22,
               ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+            ),
+            const SizedBox(width: 14),
+            // ── Payee + Date + Category ─────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "₹${txn.amount.toStringAsFixed(2)}",
-                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: amountColor),
+                    txn.payee?.trim().isNotEmpty == true
+                        ? txn.payee!
+                        : 'Unknown Merchant',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.dmSans(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Icon(Icons.drag_indicator_rounded, size: 22, color: AppColors.secondaryText),
+                  const SizedBox(height: 3),
+                  Text(
+                    txn.formattedDate,
+                    style: GoogleFonts.dmSans(
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryMuted,
+                      borderRadius: BorderRadius.circular(
+                          AppTheme.radiusSm),
+                    ),
+                    child: Text(
+                      categoryLabel,
+                      style: GoogleFonts.dmSans(
+                        color: AppColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 ],
-              )
-            ],
-          ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // ── Amount + Drag Handle ────────────────────────
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '₹${txn.amount.toStringAsFixed(2)}',
+                  style: GoogleFonts.dmSans(
+                    color: amountColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Icon(Icons.drag_indicator_rounded,
+                    size: 20, color: AppColors.textMuted),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -186,49 +222,46 @@ class SmsCategorizationScreen extends GetView<SmsCategorizationController> {
 
   Widget _buildCategoryInsertionPanel(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 18, top: 12),
-      padding: const EdgeInsets.symmetric(vertical: 18),
+      margin: const EdgeInsets.only(bottom: 16, top: 8),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary, width: 2),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppColors.primary, width: 1.5),
       ),
       child: Column(
         children: [
           Text(
-            "Drop Here to Categorize",
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppColors.mainText),
+            'Drop Here to Categorize',
+            style: GoogleFonts.dmSans(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+              fontSize: 14,
+            ),
           ),
-          const SizedBox(height: 18), // Added a bit more space
-
-          // --- THIS IS THE UPDATED PART ---
+          const SizedBox(height: 20),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0), // Give the wrap some side padding
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Wrap(
-              alignment: WrapAlignment.center, // Center the categories
-              spacing: 16, // Horizontal space between icons
-              runSpacing: 16, // Vertical space between rows
+              alignment: WrapAlignment.center,
+              spacing: 20,
+              runSpacing: 16,
               children: kCategories.map((cat) {
-                // We no longer need the extra horizontal Padding
-                // around each item, as the Wrap's 'spacing' handles it.
                 return _buildCategoryDragTarget(
-                  cat["label"] as String,
-                  cat["icon"] as IconData,
-                  cat["color"] as Color,
+                  cat['label'] as String,
+                  cat['icon'] as IconData,
+                  cat['color'] as Color,
                 );
               }).toList(),
             ),
           ),
-          // --- END OF UPDATE ---
-
         ],
       ),
     );
   }
 
-// THIS WIDGET IS PERFECT! No changes needed.
-  Widget _buildCategoryDragTarget(String label, IconData icon, Color color) {
+  Widget _buildCategoryDragTarget(
+      String label, IconData icon, Color color) {
     return DragTarget<TransactionModel>(
       builder: (context, candidateData, rejectedData) {
         final hover = candidateData.isNotEmpty;
@@ -237,13 +270,28 @@ class SmsCategorizationScreen extends GetView<SmsCategorizationController> {
           scale: hover ? 1.15 : 1.0,
           child: Column(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: hover ? color.withOpacity(0.8) : color.withOpacity(0.15),
-                child: Icon(icon, color: hover ? Colors.white : color, size: 26),
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: hover
+                      ? color.withOpacity(0.8)
+                      : color.withOpacity(0.12),
+                  borderRadius:
+                      BorderRadius.circular(AppTheme.radiusMd),
+                ),
+                child: Icon(icon,
+                    color: hover ? Colors.white : color, size: 24),
               ),
               const SizedBox(height: 6),
-              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.mainText)),
+              Text(
+                label,
+                style: GoogleFonts.dmSans(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         );
@@ -254,13 +302,14 @@ class SmsCategorizationScreen extends GetView<SmsCategorizationController> {
           controller.stopCategorizing();
 
           Get.snackbar(
-            "Success ",
-            "Transaction categorized as $label!",
+            'Categorized',
+            'Transaction marked as $label',
             snackPosition: SnackPosition.TOP,
-            backgroundColor: color.withOpacity(0.7),
+            backgroundColor: color.withOpacity(0.85),
             colorText: Colors.white,
           );
         });
       },
     );
-  }}
+  }
+}

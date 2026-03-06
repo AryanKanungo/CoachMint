@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../../../utils/colors.dart';
+import '../../../utils/theme.dart';
 
-// 1. DATA CLASS (Defined here to ensure scope is correct)
+// Data class (unchanged — functional)
 class HardcodedChartData {
   HardcodedChartData(this.x, this.y);
   final String x;
@@ -14,7 +16,6 @@ class PredictionChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 2. EXPLICITLY TYPED LIST
     final List<HardcodedChartData> chartData = [
       HardcodedChartData('1', 50),
       HardcodedChartData('2', 80),
@@ -26,33 +27,52 @@ class PredictionChart extends StatelessWidget {
     return Container(
       height: 220,
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(24),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppColors.border),
       ),
-      child: SfCartesianChart(
-        plotAreaBorderWidth: 0,
-        primaryXAxis: const CategoryAxis(isVisible: false),
-        primaryYAxis: const NumericAxis(isVisible: false),
-
-        // 3. MATCHING TYPES: <DataClass, HorizontalAxisType>
-        series: <CartesianSeries<HardcodedChartData, String>>[
-          SplineAreaSeries<HardcodedChartData, String>(
-            dataSource: chartData,
-            xValueMapper: (HardcodedChartData data, _) => data.x,
-            yValueMapper: (HardcodedChartData data, _) => data.y,
-            gradient: LinearGradient(
-              colors: [
-                AppColors.greenAccent.withOpacity(0.3),
-                Colors.transparent
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Section label ─────────────────────────────────
+          Text(
+            'SPENDING FORECAST',
+            style: GoogleFonts.dmSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMuted,
+              letterSpacing: 1.6,
             ),
-            borderColor: AppColors.greenAccent,
-            borderWidth: 3,
-            animationDuration: 1000,
+          ),
+          const SizedBox(height: 4),
+          // ── Chart ─────────────────────────────────────────
+          Expanded(
+            child: SfCartesianChart(
+              plotAreaBorderWidth: 0,
+              margin: EdgeInsets.zero,
+              primaryXAxis: const CategoryAxis(isVisible: false),
+              primaryYAxis: const NumericAxis(isVisible: false),
+              series: <CartesianSeries<HardcodedChartData, String>>[
+                SplineAreaSeries<HardcodedChartData, String>(
+                  dataSource: chartData,
+                  xValueMapper: (HardcodedChartData data, _) => data.x,
+                  yValueMapper: (HardcodedChartData data, _) => data.y,
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withOpacity(0.25),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderColor: AppColors.primary,
+                  borderWidth: 2.5,
+                  animationDuration: 1000,
+                ),
+              ],
+            ),
           ),
         ],
       ),

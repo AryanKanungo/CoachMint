@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get/get.dart';
-
-import '../../common widgets/widgets.dart';
+import '../../common_widgets/widgets.dart';
 import '../../controllers/register_controller.dart';
+import '../../utils/colors.dart';
 import '../../utils/theme.dart';
-
 
 class RegisterScreen extends StatelessWidget {
   RegisterScreen({super.key});
@@ -14,17 +13,19 @@ class RegisterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minHeight: MediaQuery.of(context).size.height -
                   MediaQuery.of(context).padding.top -
                   MediaQuery.of(context).padding.bottom -
-                  48, // Adjusting for padding
+                  48,
             ),
             child: IntrinsicHeight(
               child: Column(
@@ -32,106 +33,77 @@ class RegisterScreen extends StatelessWidget {
                 children: [
                   const Spacer(flex: 1),
 
-                  // Logo
+                  // ── Logo ──────────────────────────────────────
                   Container(
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: AppTheme.brand.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.brand.withOpacity(0.3)),
+                      color: AppColors.primaryMuted,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      border: Border.all(
+                          color: AppColors.primary.withOpacity(0.3)),
                     ),
                     child: const Center(
                       child: Text('₹',
-                          style: TextStyle(fontSize: 24, color: AppTheme.brand)),
+                          style: TextStyle(
+                              fontSize: 24,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700)),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  Text(
-                    'CoachMint',
-                    style: Theme.of(context).textTheme.displaySmall,
-                  ),
+                  Text('CoachMint', style: tt.displaySmall),
                   const SizedBox(height: 8),
                   Text(
                     'Your money. Your rules.\nCreate an account to get started.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppTheme.textSecondary,
+                    style: tt.bodyLarge?.copyWith(
+                      color: AppColors.textSecondary,
                       height: 1.5,
                     ),
                   ),
 
                   const Spacer(flex: 2),
 
-                  // Email Input
+                  // ── Email ─────────────────────────────────────
                   Text('Email Address',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(color: AppTheme.textSecondary)),
+                      style: tt.titleSmall
+                          ?.copyWith(color: AppColors.textSecondary)),
                   const SizedBox(height: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceElevated,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: TextField(
-                      controller: controller.emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      autofocus: true,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
-                      decoration: const InputDecoration(
-                        hintText: 'hello@coachmint.com',
-                        contentPadding: EdgeInsets.all(16),
-                        border: InputBorder.none,
-                      ),
-                    ),
+                  _InputField(
+                    controller: controller.emailController,
+                    hint: 'hello@coachmint.com',
+                    keyboardType: TextInputType.emailAddress,
+                    autofocus: true,
                   ),
 
                   const SizedBox(height: 20),
 
-                  // Password Input
+                  // ── Password ──────────────────────────────────
                   Text('Password',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(color: AppTheme.textSecondary)),
+                      style: tt.titleSmall
+                          ?.copyWith(color: AppColors.textSecondary)),
                   const SizedBox(height: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceElevated,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: TextField(
-                      controller: controller.passwordController,
-                      obscureText: true, // Hides the password
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
-                      decoration: const InputDecoration(
-                        hintText: 'Minimum 6 characters',
-                        contentPadding: EdgeInsets.all(16),
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) async {
-                        // Allows user to submit via keyboard 'enter'
-                        if (await controller.register() && context.mounted) {
-                          context.go('/onboarding');
-                        }
-                      },
-                    ),
+                  _InputField(
+                    controller: controller.passwordController,
+                    hint: 'Minimum 6 characters',
+                    obscureText: true,
+                    onSubmitted: (_) async {
+                      if (await controller.register() && context.mounted) {
+                        context.go('/onboarding');
+                      }
+                    },
                   ),
 
-                  // Error Message
+                  // ── Error Message ─────────────────────────────
                   Obx(() {
                     if (controller.errorMessage.value != null) {
                       return Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: Text(
                           controller.errorMessage.value!,
-                          style: const TextStyle(color: AppTheme.danger, fontSize: 13),
+                          style: const TextStyle(
+                              color: AppColors.danger, fontSize: 13),
                         ),
                       );
                     }
@@ -140,33 +112,33 @@ class RegisterScreen extends StatelessWidget {
 
                   const SizedBox(height: 32),
 
-                  // Submit Button
+                  // ── Submit Button ─────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     child: Obx(() => CMButton(
-                      label: 'Sign Up',
-                      loading: controller.isLoading.value,
-                      icon: Icons.arrow_forward_rounded,
-                      onPressed: () async {
-                        bool success = await controller.register();
-                        if (success && context.mounted) {
-                          context.go('/onboarding'); // Route to onboarding on success
-                        }
-                      },
-                    )),
+                          label: 'Sign Up',
+                          loading: controller.isLoading.value,
+                          icon: Icons.arrow_forward_rounded,
+                          onPressed: () async {
+                            bool success = await controller.register();
+                            if (success && context.mounted) {
+                              context.go('/onboarding');
+                            }
+                          },
+                        )),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Login redirect (Optional, good for UX)
+                  // ── Login redirect ────────────────────────────
                   Center(
                     child: GestureDetector(
-                      onTap: () => context.go('/login'), // Assuming you will build a login route
+                      onTap: () => context.go('/login'),
                       child: const Text(
                         'Already have an account? Log in',
                         style: TextStyle(
                             fontSize: 14,
-                            color: AppTheme.brand,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -177,6 +149,61 @@ class RegisterScreen extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Private reusable input field widget
+// ─────────────────────────────────────────────────────────────────
+class _InputField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final bool obscureText;
+  final bool autofocus;
+  final TextInputType? keyboardType;
+  final void Function(String)? onSubmitted;
+
+  const _InputField({
+    required this.controller,
+    required this.hint,
+    this.obscureText = false,
+    this.autofocus = false,
+    this.keyboardType,
+    this.onSubmitted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        autofocus: autofocus,
+        keyboardType: keyboardType,
+        onSubmitted: onSubmitted,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(
+            color: AppColors.textMuted,
+            fontWeight: FontWeight.w400,
+          ),
+          contentPadding: const EdgeInsets.all(16),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
         ),
       ),
     );
