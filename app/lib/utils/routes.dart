@@ -6,6 +6,7 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/sms_categorisation/sms_categorsation_screen.dart';
 
 
 final GoRouter appRouter = GoRouter(
@@ -51,6 +52,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/dashboard',
       builder: (context, state) => DashboardScreen(),
+    ),
+    GoRoute(
+      path: '/sms-categorization',
+      builder: (context, state) => const SmsCategorizationScreen(),
     ),
   ],
 );
