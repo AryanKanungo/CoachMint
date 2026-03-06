@@ -2,50 +2,55 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/transaction_model.dart';
 import '../../services/sms_service.dart';
-import '../../services/supabase_transaction_service.dart';
+import '../services/sms_supabase_service.dart';
 
 class TransactionController extends GetxController {
-  final SmsService _smsService = SmsService();
-  final SupabaseTransactionService _supabaseService = SupabaseTransactionService();
+  final _smsService      = SmsService();
+  final _supabaseService = SupabaseTransactionService();
 
-  final RxList<TransactionModel> uncategorized = <TransactionModel>[].obs;
-  final RxList<TransactionModel> categorized = <TransactionModel>[].obs;
-  final RxBool isLoading = false.obs;
-  final RxString error = ''.obs;
+  final uncategorized = <TransactionModel>[].obs;
+  final categorized   = <TransactionModel>[].obs;
+  final isLoading     = false.obs;
+  final errorMsg      = ''.obs;
 
-  String get userId => Supabase.instance.client.auth.currentUser?.id ?? '';
+  String get userId =>
+      Supabase.instance.client.auth.currentUser?.id ?? '';
 
-  // --- SMS Permission ---
+  // ── Permission ────────────────────────────────────────────────────────────
 
-  Future<bool> requestSmsPermission() async {
-    return await _smsService.requestPermission();
-  }
+  Future<bool> requestSmsPermission() => _smsService.requestPermission();
+  Future<bool> hasSmsPermission()     => _smsService.hasPermission();
 
-  Future<bool> hasSmsPermission() async {
-    return await _smsService.hasPermission();
-  }
-
-  // --- Load uncategorized SMS txns ---
+  // ── Load SMS transactions ─────────────────────────────────────────────────
 
   Future<void> loadSmsTransactions() async {
     isLoading.value = true;
-    error.value = '';
+    errorMsg.value  = '';
 
     try {
       final all = await _smsService.fetchTransactions(userId);
-      final existingRaws = await _supabaseService.fetchExistingRaws(userId);
+
+      // Dedup against Supabase — non-fatal if DB call fails
+      Set<String> existingRaws = {};
+      try {
+        existingRaws = await _supabaseService.fetchExistingRaws(userId);
+      } catch (_) {}
+
       uncategorized.value =
           all.where((t) => !existingRaws.contains(t.raw)).toList();
     } catch (e) {
-      error.value = 'Failed to load SMS: $e';
+      errorMsg.value = 'Could not read SMS: $e';
+    } finally {
+      isLoading.value = false;
     }
-
-    isLoading.value = false;
   }
 
-  // --- Categorize a txn (drag-drop) ---
+  // ── Categorize (drag-drop) ────────────────────────────────────────────────
 
   Future<void> categorize(TransactionModel txn, String category) async {
+    // Optimistic remove
+    uncategorized.removeWhere((t) => t.raw == txn.raw);
+
     final updated = txn.copyWith(category: category);
 
     try {
@@ -54,25 +59,26 @@ class TransactionController extends GetxController {
       } else {
         await _supabaseService.saveTransaction(updated);
       }
-      uncategorized.removeWhere((t) => t.raw == txn.raw);
       categorized.insert(0, updated);
     } catch (e) {
-      error.value = 'Failed to save: $e';
+      // Rollback on failure — tile goes back into the list
+      uncategorized.insert(0, txn);
+      errorMsg.value = 'Save failed — try again';
     }
   }
 
-  // --- Fetch already-categorized records from Supabase ---
+  // ── Fetch categorized records ─────────────────────────────────────────────
 
   Future<void> loadCategorized() async {
     isLoading.value = true;
-    error.value = '';
+    errorMsg.value  = '';
 
     try {
       categorized.value = await _supabaseService.fetchCategorized(userId);
     } catch (e) {
-      error.value = 'Failed to fetch records: $e';
+      errorMsg.value = 'Could not load records: $e';
+    } finally {
+      isLoading.value = false;
     }
-
-    isLoading.value = false;
   }
 }

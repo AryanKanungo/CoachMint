@@ -1,315 +1,515 @@
-import 'package:coachmint/screens/sms_categorisation/sms_categorisation_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
+import '../../controllers/transaction_controller.dart';
 import '../../models/transaction_model.dart';
-import '../../utils/colors.dart';
-import '../../utils/theme.dart';
+import '../../utils/routes.dart';
 
-// Top-level categories constant (unchanged — functional data)
-const List<Map<String, dynamic>> kCategories = [
-  {"label": "Food", "icon": Icons.restaurant_rounded, "color": Colors.orange},
-  {"label": "Transport", "icon": Icons.train_rounded, "color": Colors.blue},
-  {"label": "Bills", "icon": Icons.lightbulb_rounded, "color": Colors.red},
-  {"label": "Shopping", "icon": Icons.shopping_cart_rounded, "color": Colors.green},
-  {"label": "Health", "icon": Icons.local_hospital_rounded, "color": Colors.purple},
-  {"label": "Other", "icon": Icons.category_rounded, "color": Colors.grey},
-];
+// File-level RegExp — never recreated on rebuild
+final _vpaDisplayRe = RegExp(r'[\w.\-]+@\w+', caseSensitive: false);
 
-class SmsCategorizationScreen extends GetView<SmsCategorizationController> {
+/// screens/sms_categorisation/sms_categorsation_screen.dart
+class SmsCategorizationScreen extends StatefulWidget {
   const SmsCategorizationScreen({super.key});
+
+  @override
+  State<SmsCategorizationScreen> createState() =>
+      _SmsCategorizationScreenState();
+}
+
+class _SmsCategorizationScreenState extends State<SmsCategorizationScreen> {
+  late final TransactionController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = Get.find<TransactionController>();
+    // Always load on open — Supabase dedup prevents re-inserting old txns
+    _ctrl.loadSmsTransactions();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
-        surfaceTintColor: AppColors.surface,
-        title: const Text('Categorize Transactions'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: const Text(
+          'Categorize',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.push(AppRoutes.categorizedTxns),
+            child: const Text(
+              'Records',
+              style: TextStyle(color: Color(0xFF6C63FF), fontSize: 13),
+            ),
+          ),
+          IconButton(
+            onPressed: () => context.go(AppRoutes.dashboard),
+            icon: const Icon(Icons.home_outlined, color: Colors.black87),
+            tooltip: 'Dashboard',
+          ),
+        ],
       ),
       body: Obx(() {
-        if (!controller.isLoaded.value) {
+        if (_ctrl.isLoading.value) {
           return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          );
-        }
-
-        final sorted = controller.transactions;
-        final draggedIndex = controller.draggingIndex.value;
-
-        if (sorted.isEmpty) {
-          return Center(
-            child: Text(
-              'No transactions found from the last 7 days.',
-              style: GoogleFonts.dmSans(
-                color: AppColors.textMuted,
-                fontSize: 14,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFF6C63FF)),
+                SizedBox(height: 14),
+                Text('Reading your SMS...',
+                    style: TextStyle(color: Colors.grey, fontSize: 13)),
+              ],
             ),
           );
         }
 
-        final total = sorted.length + (draggedIndex != -1 ? 1 : 0);
+        if (_ctrl.errorMsg.value.isNotEmpty) {
+          return _ErrorState(ctrl: _ctrl);
+        }
 
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          itemCount: total,
-          itemBuilder: (context, index) {
-            if (draggedIndex != -1 && index == draggedIndex + 1) {
-              return _buildCategoryInsertionPanel(context);
-            }
+        if (_ctrl.uncategorized.isEmpty) {
+          return _EmptyState(ctrl: _ctrl);
+        }
 
-            final realIndex = (draggedIndex != -1 && index > draggedIndex)
-                ? index - 1
-                : index;
-
-            if (realIndex < 0 || realIndex >= sorted.length) {
-              return const SizedBox.shrink();
-            }
-
-            return _buildTransactionTile(
-                context, sorted[realIndex], realIndex);
-          },
-        );
+        return _Body(ctrl: _ctrl);
       }),
     );
   }
+}
 
-  Widget _buildTransactionTile(
-      BuildContext context, TransactionModel txn, int index) {
-    final isIncome = txn.direction == 'in';
-    final amountColor =
-        isIncome ? AppColors.success : AppColors.danger;
-    final categoryLabel = txn.category ?? 'Uncategorized';
+// ─── Body ─────────────────────────────────────────────────────────────────────
 
-    return LongPressDraggable<TransactionModel>(
-      data: txn,
-      onDragStarted: () {
-        Future.microtask(() => controller.startCategorizing(index));
-      },
-      onDragEnd: (_) {
-        Future.microtask(() => controller.stopCategorizing());
-      },
-      feedback: Material(
-        color: Colors.transparent,
-        clipBehavior: Clip.hardEdge,
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          ),
-          child: Text(
-            '₹${txn.amount.toStringAsFixed(2)} | $categoryLabel',
-            style: GoogleFonts.dmSans(
-              color: Colors.black,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
+class _Body extends StatelessWidget {
+  final TransactionController ctrl;
+  const _Body({required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Banner
+        Container(
+          width: double.infinity,
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Obx(() {
+            final debits  = ctrl.uncategorized.where((t) => t.direction == 'debit').length;
+            final credits = ctrl.uncategorized.where((t) => t.direction == 'credit').length;
+            final parts   = <String>[];
+            if (debits > 0)  parts.add('$debits expense${debits == 1 ? '' : 's'} to sort');
+            if (credits > 0) parts.add('$credits income (view only)');
+            parts.add('drag into a bucket');
+            return Text(
+              parts.join('  ·  '),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            );
+          }),
+        ),
+
+        // Scrollable tile list
+        Expanded(
+          child: Obx(
+                () => ListView.builder(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              itemCount: ctrl.uncategorized.length,
+              itemBuilder: (_, i) => _TxnTile(txn: ctrl.uncategorized[i]),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ),
-      ),
-      childWhenDragging: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        height: 80,
-        decoration: BoxDecoration(
-          color: AppColors.surface.withOpacity(0.4),
-          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-          border: Border.all(
-              color: AppColors.border, style: BorderStyle.solid),
-        ),
-      ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            // ── Direction Icon ──────────────────────────────
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: amountColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+
+        // Drop zone — pinned bottom
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Drop expenses here to categorize',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: Colors.black87,
+                ),
               ),
-              child: Icon(
-                isIncome
-                    ? Icons.arrow_upward_rounded
-                    : Icons.arrow_downward_rounded,
-                color: amountColor,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
-            // ── Payee + Date + Category ─────────────────────
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    txn.payee?.trim().isNotEmpty == true
-                        ? txn.payee!
-                        : 'Unknown Merchant',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.dmSans(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+              const SizedBox(height: 10),
+              Row(
+                children: const [
+                  _DropBucket(
+                    label: 'Essential',
+                    category: 'essential',
+                    icon: Icons.home_outlined,
+                    color: Color(0xFF4CAF50),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    txn.formattedDate,
-                    style: GoogleFonts.dmSans(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
+                  SizedBox(width: 8),
+                  _DropBucket(
+                    label: 'Non-Essential',
+                    category: 'non_essential',
+                    icon: Icons.shopping_bag_outlined,
+                    color: Color(0xFFFF7043),
                   ),
-                  const SizedBox(height: 5),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryMuted,
-                      borderRadius: BorderRadius.circular(
-                          AppTheme.radiusSm),
-                    ),
-                    child: Text(
-                      categoryLabel,
-                      style: GoogleFonts.dmSans(
-                        color: AppColors.primary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                  SizedBox(width: 8),
+                  _DropBucket(
+                    label: 'Savings',
+                    category: 'savings_investments',
+                    icon: Icons.trending_up,
+                    color: Color(0xFF6C63FF),
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Transaction tile ─────────────────────────────────────────────────────────
+
+class _TxnTile extends StatelessWidget {
+  final TransactionModel txn;
+  const _TxnTile({required this.txn});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDebit = txn.direction == 'debit';
+
+    if (!isDebit) {
+      // Income — show but not draggable
+      return _TxnCard(txn: txn, locked: true);
+    }
+
+    return Draggable<TransactionModel>(
+      data: txn,
+      feedback: Material(
+        elevation: 8,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width - 24,
+          child: _TxnCard(txn: txn, isGhost: true),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.25,
+        child: _TxnCard(txn: txn),
+      ),
+      child: _TxnCard(txn: txn),
+    );
+  }
+}
+
+class _TxnCard extends StatelessWidget {
+  final TransactionModel txn;
+  final bool isGhost;
+  final bool locked;
+
+  const _TxnCard({
+    required this.txn,
+    this.isGhost = false,
+    this.locked  = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDebit  = txn.direction == 'debit';
+    final amtColor = isDebit ? const Color(0xFFFF7043) : const Color(0xFF4CAF50);
+
+    // Subtitle: if payee is already a VPA show date only,
+    // else show VPA from raw + date underneath
+    final payeeIsVpa  = txn.payee.contains('@');
+    final vpaFromRaw  = _vpaDisplayRe.firstMatch(txn.raw)?.group(0) ?? '';
+    final showVpaSub  = !payeeIsVpa && vpaFromRaw.isNotEmpty;
+
+    return Opacity(
+      opacity: locked ? 0.5 : 1.0,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isGhost ? 0.14 : 0.05),
+              blurRadius: isGhost ? 18 : 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Direction icon
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: amtColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isDebit ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 18,
+                color: amtColor,
+              ),
             ),
             const SizedBox(width: 12),
-            // ── Amount + Drag Handle ────────────────────────
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '₹${txn.amount.toStringAsFixed(2)}',
-                  style: GoogleFonts.dmSans(
-                    color: amountColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
+
+            // Payee + subtitle
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    txn.payee,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(height: 6),
-                const Icon(Icons.drag_indicator_rounded,
-                    size: 20, color: AppColors.textMuted),
-              ],
+                  const SizedBox(height: 2),
+                  if (showVpaSub) ...[
+                    Text(
+                      vpaFromRaw,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[500],
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      txn.formattedDate,
+                      style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                    ),
+                  ] else
+                    Text(
+                      txn.formattedDate,
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    ),
+                ],
+              ),
+            ),
+
+            // Amount
+            Text(
+              '${isDebit ? '−' : '+'}₹${txn.amount.toStringAsFixed(0)}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: amtColor,
+              ),
+            ),
+            const SizedBox(width: 6),
+
+            Icon(
+              locked ? Icons.lock_outline : Icons.drag_indicator,
+              size: locked ? 15 : 20,
+              color: Colors.grey[350],
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildCategoryInsertionPanel(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16, top: 8),
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppColors.primary, width: 1.5),
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Drop Here to Categorize',
-            style: GoogleFonts.dmSans(
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              fontSize: 14,
+// ─── Drop bucket ──────────────────────────────────────────────────────────────
+
+class _DropBucket extends StatefulWidget {
+  final String   label;
+  final String   category;
+  final IconData icon;
+  final Color    color;
+
+  const _DropBucket({
+    required this.label,
+    required this.category,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  State<_DropBucket> createState() => _DropBucketState();
+}
+
+class _DropBucketState extends State<_DropBucket> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = Get.find<TransactionController>();
+
+    return Expanded(
+      child: DragTarget<TransactionModel>(
+        // Hard-reject credits — only debits accepted
+        onWillAcceptWithDetails: (details) {
+          if (details.data.direction != 'debit') return false;
+          setState(() => _hover = true);
+          return true;
+        },
+        onLeave: (_) => setState(() => _hover = false),
+        onAcceptWithDetails: (details) {
+          setState(() => _hover = false);
+          ctrl.categorize(details.data, widget.category);
+        },
+        builder: (_, candidateData, __) {
+          final active = _hover || candidateData.isNotEmpty;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: widget.color.withOpacity(active ? 0.14 : 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: widget.color.withOpacity(active ? 1.0 : 0.25),
+                width: active ? 2.0 : 1.0,
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 20,
-              runSpacing: 16,
-              children: kCategories.map((cat) {
-                return _buildCategoryDragTarget(
-                  cat['label'] as String,
-                  cat['icon'] as IconData,
-                  cat['color'] as Color,
-                );
-              }).toList(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(widget.icon, color: widget.color, size: 22),
+                const SizedBox(height: 6),
+                Text(
+                  widget.label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: widget.color,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
+}
 
-  Widget _buildCategoryDragTarget(
-      String label, IconData icon, Color color) {
-    return DragTarget<TransactionModel>(
-      builder: (context, candidateData, rejectedData) {
-        final hover = candidateData.isNotEmpty;
-        return AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: hover ? 1.15 : 1.0,
-          child: Column(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: hover
-                      ? color.withOpacity(0.8)
-                      : color.withOpacity(0.12),
-                  borderRadius:
-                      BorderRadius.circular(AppTheme.radiusMd),
-                ),
-                child: Icon(icon,
-                    color: hover ? Colors.white : color, size: 24),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: GoogleFonts.dmSans(
-                  fontSize: 11,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-      onAccept: (txn) {
-        Future.microtask(() {
-          controller.categorizeTransaction(txn, label);
-          controller.stopCategorizing();
+// ─── Empty state ──────────────────────────────────────────────────────────────
 
-          Get.snackbar(
-            'Categorized',
-            'Transaction marked as $label',
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: color.withOpacity(0.85),
-            colorText: Colors.white,
-          );
-        });
-      },
+class _EmptyState extends StatelessWidget {
+  final TransactionController ctrl;
+  const _EmptyState({required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_outline, size: 64, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text(
+              'All caught up!',
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No new UPI transactions to categorize.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: 220,
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => context.push(AppRoutes.categorizedTxns),
+                      icon: const Icon(Icons.history, size: 16),
+                      label: const Text('View Records'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6C63FF),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.go(AppRoutes.dashboard),
+                      icon: const Icon(Icons.home_outlined, size: 16),
+                      label: const Text('Dashboard'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.black87,
+                        side: const BorderSide(color: Colors.black26),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Error state ──────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+  final TransactionController ctrl;
+  const _ErrorState({required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 56, color: Colors.red[300]),
+            const SizedBox(height: 16),
+            Obx(() => Text(
+              ctrl.errorMsg.value,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            )),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: ctrl.loadSmsTransactions,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6C63FF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

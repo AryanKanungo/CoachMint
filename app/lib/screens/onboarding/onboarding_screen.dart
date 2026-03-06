@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../controllers/onboarding_controller.dart';
 import '../../utils/app_constants.dart';
+import '../../utils/routes.dart';
 import '../../utils/theme.dart';
 
 class OnboardingScreen extends StatelessWidget {
@@ -112,7 +113,7 @@ class OnboardingScreen extends StatelessWidget {
                         } else {
                           final success = await controller.saveOnboarding();
                           if (success && context.mounted) {
-                            context.go('/dashboard');
+                            context.go(AppRoutes.smsPermission);
                           }
                         }
                       },
