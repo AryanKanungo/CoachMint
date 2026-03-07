@@ -34,7 +34,7 @@ class SchemeService {
           .from('welfare_schemes')
           .select()
           .order('created_at', ascending: false);
-      
+
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('Supabase error: $e. Using fallback mock data.');

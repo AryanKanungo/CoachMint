@@ -5,7 +5,6 @@ import '../models/goal_model.dart';
 
 /// ════════════════════════════════════════════════════════════════
 /// GoalService — all Supabase operations for the `goals` table.
-///
 /// All methods are scoped to the currently logged-in user via
 /// Supabase auth — no user_id needs to be passed in from the UI.
 /// ════════════════════════════════════════════════════════════════
@@ -17,11 +16,10 @@ class GoalService {
 
   String get _uid => _db.auth.currentUser?.id ?? '';
 
-  // ── Read ───────────────────────────────────────────────────────
+  // ── Read ────────────────────────────────────────────────────────
 
   /// Fetch all goals for the current user.
-  /// Sorted server-side by deadline ASC (nulls last), then refined
-  /// client-side in the screen for overdue / urgency ordering.
+  /// Sorted server-side: deadline ASC, nulls last.
   Future<List<GoalModel>> fetchGoals() async {
     final rows = await _db
         .from('goals')
@@ -30,17 +28,19 @@ class GoalService {
         .order('deadline', ascending: true, nullsFirst: false);
 
     return (rows as List<dynamic>)
-        .map((r) => GoalModel.fromMap(r as Map<String, dynamic>))
+        .map((r) => GoalModel.fromJson(r as Map<String, dynamic>))
         .toList();
   }
 
-  // ── Write ──────────────────────────────────────────────────────
+  // ── Write ───────────────────────────────────────────────────────
 
   /// Insert a new goal. Returns the server-assigned record (with id).
   Future<GoalModel> addGoal(GoalModel goal) async {
-    final payload = goal.toMap();
-    // Always stamp with real auth uid, ignore anything passed in
+    final payload = goal.toJson();
+    // Always stamp with real auth uid — ignore anything caller passed
     payload['user_id'] = _uid;
+    // Never send id on insert — let Supabase generate it
+    payload.remove('id');
 
     final row = await _db
         .from('goals')
@@ -48,10 +48,10 @@ class GoalService {
         .select()
         .single();
 
-    return GoalModel.fromMap(row as Map<String, dynamic>);
+    return GoalModel.fromJson(row as Map<String, dynamic>);
   }
 
-  /// Patch the saved_amount field only (used from progress modal).
+  /// Patch only the saved_amount field (e.g. from a progress modal).
   Future<void> updateSavedAmount({
     required String goalId,
     required double newAmount,
@@ -63,7 +63,7 @@ class GoalService {
         .eq('user_id', _uid);
   }
 
-  // ── Delete ─────────────────────────────────────────────────────
+  // ── Delete ──────────────────────────────────────────────────────
 
   Future<void> deleteGoal(String goalId) async {
     await _db

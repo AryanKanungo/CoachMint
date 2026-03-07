@@ -1,121 +1,83 @@
 // lib/models/goal_model.dart
 
 /// ════════════════════════════════════════════════════════════════
-/// GoalModel — mirrors the `goals` table in Supabase
-///
-/// Table schema:
-///   id             text (uuid, PK, default gen_random_uuid())
-///   user_id        text
-///   title          text
-///   target_amount  numeric
-///   saved_amount   numeric  (default 0)
-///   deadline       text     (ISO-8601 date, nullable)
-///   category       text     (nullable)
-///   is_emergency_fund boolean (default false)
+/// GoalModel — matches goals table exactly.
+/// DB columns: id, user_id, title, target_amount, deadline, saved_amount
 /// ════════════════════════════════════════════════════════════════
+
 class GoalModel {
-  final String? id;
-  final String userId;
-  final String title;
-  final double targetAmount;
-  final double savedAmount;
+  final String    id;           // '' on new inserts, DB gen_random_uuid() fills it
+  final String    userId;
+  final String    title;
+  final double    targetAmount;
   final DateTime? deadline;
+  final double    savedAmount;
 
-  /// One of: 'home' | 'tech' | 'travel' | 'health' | 'edu' | 'other'
-  final String? category;
-
-  /// True for the emergency fund goal — used to compute the header card
-  final bool isEmergencyFund;
-
-  const GoalModel({
-    this.id,
+  GoalModel({
+    this.id = '',
     required this.userId,
     required this.title,
     required this.targetAmount,
-    this.savedAmount = 0.0,
     this.deadline,
-    this.category,
-    this.isEmergencyFund = false,
+    this.savedAmount = 0.0,
   });
 
-  // ── Derived helpers ────────────────────────────────────────────
+  // ── Serialization ───────────────────────────────────────────────
 
-  /// 0.0 → 1.0 clamped
+  /// Read from Supabase row (uses snake_case DB columns)
+  factory GoalModel.fromJson(Map<String, dynamic> json) => GoalModel(
+    id:           json['id']?.toString() ?? '',
+    userId:       json['user_id']?.toString() ?? '',
+    title:        json['title']?.toString() ?? '',
+    targetAmount: (json['target_amount'] ?? 0).toDouble(),
+    deadline:     json['deadline'] != null
+        ? DateTime.parse(json['deadline'].toString())
+        : null,
+    savedAmount:  (json['saved_amount'] ?? 0).toDouble(),
+  );
+
+  /// Alias so GoalService.fromMap() calls compile unchanged
+  factory GoalModel.fromMap(Map<String, dynamic> map) =>
+      GoalModel.fromJson(map);
+
+  /// Write to Supabase. Omits id when empty (let DB generate it).
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'user_id':      userId,
+      'title':        title,
+      'target_amount': targetAmount,
+      'deadline':     deadline?.toIso8601String(),
+      'saved_amount': savedAmount,
+    };
+    if (id.isNotEmpty) map['id'] = id;
+    return map;
+  }
+
+  /// Alias so GoalService.toMap() calls compile unchanged
+  Map<String, dynamic> toMap() => toJson();
+
+  // ── Derived helpers used by TrackGoalsScreen ────────────────────
+
+  /// Fraction of target saved — clamped [0.0, 1.0]
   double get progressPercent =>
-      targetAmount > 0
-          ? (savedAmount / targetAmount).clamp(0.0, 1.0)
-          : 0.0;
+      targetAmount > 0 ? (savedAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
 
-  double get remaining =>
-      (targetAmount - savedAmount).clamp(0.0, double.infinity);
+  /// Amount still needed
+  double get remaining => (targetAmount - savedAmount).clamp(0.0, double.infinity);
 
+  /// Goal fully funded
   bool get isComplete => savedAmount >= targetAmount;
 
-  /// null when no deadline is set
-  int? get daysUntilDeadline =>
-      deadline == null
-          ? null
-          : deadline!.difference(DateTime.now()).inDays;
-
+  /// Past deadline and not yet complete
   bool get isOverdue =>
-      deadline != null &&
-      deadline!.isBefore(DateTime.now()) &&
-      !isComplete;
+      deadline != null && DateTime.now().isAfter(deadline!) && !isComplete;
 
-  // ── Serialisation ──────────────────────────────────────────────
+  /// Days until deadline (null if no deadline set; negative means overdue)
+  int? get daysUntilDeadline =>
+      deadline != null ? deadline!.difference(DateTime.now()).inDays : null;
 
-  factory GoalModel.fromMap(Map<String, dynamic> m) => GoalModel(
-        id: m['id'] as String?,
-        userId: (m['user_id'] as String?) ?? '',
-        title: (m['title'] as String?) ?? '',
-        targetAmount: _toDouble(m['target_amount']),
-        savedAmount: _toDouble(m['saved_amount']),
-        deadline: m['deadline'] != null
-            ? DateTime.tryParse(m['deadline'] as String)
-            : null,
-        category: m['category'] as String?,
-        isEmergencyFund: (m['is_emergency_fund'] as bool?) ?? false,
-      );
-
-  Map<String, dynamic> toMap() => {
-        if (id != null) 'id': id,
-        'user_id': userId,
-        'title': title,
-        'target_amount': targetAmount,
-        'saved_amount': savedAmount,
-        if (deadline != null)
-          'deadline': deadline!.toIso8601String().split('T').first,
-        if (category != null) 'category': category,
-        'is_emergency_fund': isEmergencyFund,
-      };
-
-  GoalModel copyWith({
-    String? id,
-    String? userId,
-    String? title,
-    double? targetAmount,
-    double? savedAmount,
-    DateTime? deadline,
-    String? category,
-    bool? isEmergencyFund,
-  }) =>
-      GoalModel(
-        id: id ?? this.id,
-        userId: userId ?? this.userId,
-        title: title ?? this.title,
-        targetAmount: targetAmount ?? this.targetAmount,
-        savedAmount: savedAmount ?? this.savedAmount,
-        deadline: deadline ?? this.deadline,
-        category: category ?? this.category,
-        isEmergencyFund: isEmergencyFund ?? this.isEmergencyFund,
-      );
-
-  // ── Private helpers ────────────────────────────────────────────
-
-  static double _toDouble(dynamic v) {
-    if (v == null) return 0.0;
-    if (v is double) return v;
-    if (v is int) return v.toDouble();
-    return double.tryParse(v.toString()) ?? 0.0;
-  }
+// NOTE: The old screen used `isEmergencyFund` and `category`.
+// The DB table no longer has those columns, so they are removed.
+// The Emergency Fund card now uses a fixed ₹50,000 target hardcoded
+// in the screen, not a special goal flag.
 }
